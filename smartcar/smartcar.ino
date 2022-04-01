@@ -3,6 +3,7 @@
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <FastLED.h>
 #include <PS2X_lib.h>
 
 #define PS2_DAT        19  //MISO  19
@@ -73,15 +74,20 @@ struct {
 #define RIGHT_1_B  4 //27
 #define RIGHT_2_A  7 // 13
 #define RIGHT_2_B  6 //12
-
+#define MOTORS_ACTIVE true
 
 noDelay remoteCommandTime(30);
 noDelay collisionCheckTime(100);
 noDelay carMoveTime(20);
 noDelay remoteControlTime(30);
+noDelay blinkersTime(250);
+
 int moveStep = 0;
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+#define NUM_LEDS 7
+CRGB leftEye[NUM_LEDS];
+CRGB rightEye[NUM_LEDS];
 
 int carSpeeds[][5] = {
   {0, 0,0,0,0},
@@ -97,15 +103,30 @@ int carSpeeds[][5] = {
   {10, 1,1,1,1}
 };
 
+bool EYE_ALL[NUM_LEDS] = {true, true, true, true, true, true, true};
+bool EYE_OFF[NUM_LEDS] = {false, false, false, false, false, false, false};
+
+#define TRIG_PIN 26
+#define ECHO_PIN 25
+
+bool blinkersOn = true;
+bool collision = false;
 
 void setup()  
 { 
   Serial.begin(115200);
 
-  pinMode(26, INPUT);
-  pinMode(25, INPUT);
-  pinMode(17, INPUT);
-  pinMode(16, INPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  FastLED.addLeds<WS2812, 27,GRB>(leftEye, NUM_LEDS);
+  FastLED.addLeds<WS2812, 14,GRB>(rightEye, NUM_LEDS);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 50);
+  FastLED.clear();
+  FastLED.show();
+
+  setEye(leftEye, EYE_ALL, CRGB(255,255,0));
+  setEye(rightEye, EYE_ALL, CRGB(255,255,0));
   
   while (controllerError != 0) {
     delay(3000);// 1 second wait
@@ -138,9 +159,10 @@ void setup()
   RemoteXY_Init ();  
 
   pwm.begin();
-  pwm.setPWMFreq(100);
-   
+  pwm.setPWMFreq(60);
+  pwm.setPWM(8, 0, angleToPulse(83) );
 } 
+
 
 int dx = 0;
 int dy = 0;
@@ -196,6 +218,35 @@ void loop()
       Serial.println(dx);
      }
    }
+  if(blinkersTime.update()) {
+    blinkersOn = !blinkersOn;
+    if(dx>0) {
+      if(blinkersOn) {
+        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
+        setEye(rightEye, EYE_ALL, CRGB(255,215,0));
+      }else {
+        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
+        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
+      }
+    }else if(dx<0) {
+      if(blinkersOn) {
+        setEye(leftEye, EYE_ALL, CRGB(255,215,0));
+        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
+      }else {
+        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
+        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
+      }
+    }else if(dy>0) {
+        setEye(leftEye, EYE_ALL, CRGB(255,255,255));
+        setEye(rightEye, EYE_ALL, CRGB(255,255,255));
+    }else if(dy<0 || collision) {
+        setEye(leftEye, EYE_ALL, CRGB(255,0,0));
+        setEye(rightEye, EYE_ALL, CRGB(255,0,0));
+    }else {
+        setEye(leftEye, EYE_ALL, CRGB(0,255,0));
+        setEye(rightEye, EYE_ALL, CRGB(0,255,0));
+    }
+  }
   if(remoteCommandTime.update()) {
     int rightSpeed = abs(dy);
     int leftSpeed = rightSpeed;
@@ -236,14 +287,15 @@ void loop()
       setRightSpeed(0);
       setLeftSpeed(0);
     }
+    handleCollisions();
   }
-  handleCollisions();
 
    if (RemoteXY.connect_flag == 0 && dx == 0 && dy == 0) {
       setRightSpeed(0);
       setLeftSpeed(0);
    }
    if(carMoveTime.update()) {
+      handleCollisions();
       updateCarSpeed();
       moveStep++;
       if(moveStep>3) {
@@ -253,51 +305,32 @@ void loop()
 }
 
 void handleCollisions() {
-    int backRight = digitalRead(26);
-    int backLeft = digitalRead(25);
-    int frontRight = digitalRead(17);
-    int frontLeft = digitalRead(16);
-    if(backRight == LOW) {
-      if(getRightSpeed()<0) {
-        Serial.println("Collision back right, stopping car");
-        setRightSpeed(0);
-      }
-      if(getLeftSpeed()<0) {
-        Serial.println("Collision back right, stopping car");
-        setLeftSpeed(0);
-      }
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(5);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  long cm = (duration/2) / 29.1;
+  collision = false;
+  if(cm < 25) {
+    collision = true;
+    if(getRightSpeed()>0) {
+      setRightSpeed(0);
     }
-    if(backLeft == LOW) {
-      if(getRightSpeed()<0) {
-        Serial.println("Collision back left, stopping car");
-        setRightSpeed(0);
-      }
-      if(getLeftSpeed()<0) {
-        Serial.println("Collision back left, stopping car");
-        setLeftSpeed(0);
-      }
+    if(getLeftSpeed()>0) {
+      setLeftSpeed(0);
     }
-    if(frontRight == LOW) {
-      if(getRightSpeed()>0) {
-        Serial.println("Collision front right, stopping car");
-        setRightSpeed(0);
-      }
-      if(getLeftSpeed()>0) {
-        Serial.println("Collision front right, stopping car");
-        setLeftSpeed(0);
-      }
+  }else if(cm < 35) {
+    if(getRightSpeed()>30 && getLeftSpeed()>30) {
+      setRightSpeed(30);
+      setLeftSpeed(30);
     }
-    if(frontLeft == LOW) {
-      if(getRightSpeed()>0) {
-        Serial.println("Collision front left, stopping car");
-        setRightSpeed(0);
-      }
-      if(getLeftSpeed()>0) {
-        Serial.println("Collision front left, stopping car");
-        setLeftSpeed(0);
-      }
-    }
+  }
+
 }
+
 int leftSpeed = 0;
 bool changedLeftSpeed = false;
 void setLeftSpeed(int speed) {
@@ -344,18 +377,31 @@ void updateCarSpeed() {
 }
 
 void setMotorVoltage(int speed, int voltage, int pinA, int pinB) {
-  
-  if(speed>0) {
-    pwm.setPWM(pinA,0, 4096);
-    pwm.setPWM(pinB, 0, voltage*16);
-  }else if(speed<0) {
-    pwm.setPWM(pinA, 0, voltage*16);
-    pwm.setPWM(pinB, 0, 4096);
-  }else if(speed==0) {
-    pwm.setPWM(pinA, 0, 4096);
-    pwm.setPWM(pinB, 0, 4096);
+
+  if(MOTORS_ACTIVE) {
+    if(speed>0) {
+      pwm.setPWM(pinA,0, 4096);
+      pwm.setPWM(pinB, 0, voltage*16);
+    }else if(speed<0) {
+      pwm.setPWM(pinA, 0, voltage*16);
+      pwm.setPWM(pinB, 0, 4096);
+    }else if(speed==0) {
+      pwm.setPWM(pinA, 0, 4096);
+      pwm.setPWM(pinB, 0, 4096);
+    }
+  }  
+}
+
+int setEye(CRGB *eye, bool *shape, CRGB color) {
+  for(int i=0;i<NUM_LEDS;i++) {
+    if(shape[i]) {
+      eye[i] = color;
+    }else {
+      eye[i] = CRGB(0,0,0);
+    }
   }
-  
+  FastLED.setBrightness(20);
+  FastLED.show();
 }
 
 int getSpeedVoltage(int speed, int minSpeed, int maxSpeed) {
@@ -363,4 +409,11 @@ int getSpeedVoltage(int speed, int minSpeed, int maxSpeed) {
   int adjustedSpeed = minSpeed+(maxSpeed-minSpeed)*abs(carSpeeds[speedIndex][0])/100;
   int multiplier = carSpeeds[speedIndex][moveStep+1];
   return multiplier*adjustedSpeed;
+}
+
+int angleToPulse(int ang){
+   int pulse = map(ang,0, 180, 125,575);// map angle of 0 to 180 to Servo min and Servo max 
+   Serial.print("Angle: ");Serial.print(ang);
+   Serial.print(" pulse: ");Serial.println(pulse);
+   return pulse;
 }
