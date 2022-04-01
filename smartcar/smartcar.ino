@@ -21,48 +21,6 @@ int controllerTryNum = 1;
 byte controllerType = 0;
 
 
-////////////////////////////////////////////// 
-//        RemoteXY include library          // 
-////////////////////////////////////////////// 
-
-// RemoteXY select connection mode and include library  
-#define REMOTEXY_MODE__ESP32CORE_WIFI_CLOUD
-#include <WiFi.h> 
-
-#include <RemoteXY.h> 
-
-// RemoteXY connection settings  
-#define REMOTEXY_WIFI_SSID SECRET_SSID 
-#define REMOTEXY_WIFI_PASSWORD SECRET_PASS 
-#define REMOTEXY_CLOUD_SERVER "cloud.remotexy.com" 
-#define REMOTEXY_CLOUD_PORT 6376 
-#define REMOTEXY_CLOUD_TOKEN SECRET_CLOUD_TOKEN 
-
-// RemoteXY configurate   
-#pragma pack(push, 1) 
-uint8_t RemoteXY_CONF[] = 
-  { 255,2,0,0,0,19,0,13,13,0,
-  4,48,15,7,15,46,2,26,4,176,
-  48,23,46,15,2,26 }; 
-   
-// this structure defines all the variables and events of your control interface  
-struct { 
-
-    // input variables
-  int8_t slider_1; // =-100..100 slider position 
-  int8_t slider_2; // =-100..100 slider position 
-
-    // other variable
-  uint8_t connect_flag;  // =1 if wire connected, else =0 
-
-} RemoteXY; 
-#pragma pack(pop) 
-
-
-///////////////////////////////////////////// 
-//           END RemoteXY include          // 
-///////////////////////////////////////////// 
-
 #include <NoDelay.h>
 
 //L9110S motor drive input pin
@@ -156,8 +114,6 @@ void setup()
       break;
    }
 
-  RemoteXY_Init ();  
-
   pwm.begin();
   pwm.setPWMFreq(60);
   pwm.setPWM(8, 0, angleToPulse(83) );
@@ -171,15 +127,10 @@ int olddy = dy;
 
 void loop()  
 {  
-   RemoteXY_Handler (); 
    if(remoteControlTime.update()) {
      ps2x.read_gamepad(false, 0);
      olddy = dy;
      olddx = dx;
-     if(RemoteXY.connect_flag != 0) {
-       dy = RemoteXY.slider_1;
-       dx = RemoteXY.slider_2;
-     }else {
       if(ps2x.Analog(PSS_LY) != 128) {
         dy = (128-ps2x.Analog(PSS_LY))*100/128;
       }else if(ps2x.Button(PSB_PAD_UP)) {
@@ -210,7 +161,7 @@ void loop()
       if(dx>100) {
         dx = 100;
       }
-     }
+
      if(olddx != dx || olddy != dy) {
       Serial.print("Hastighet: ");
       Serial.print(dy);
@@ -290,7 +241,7 @@ void loop()
     handleCollisions();
   }
 
-   if (RemoteXY.connect_flag == 0 && dx == 0 && dy == 0) {
+   if (dx == 0 && dy == 0) {
       setRightSpeed(0);
       setLeftSpeed(0);
    }
