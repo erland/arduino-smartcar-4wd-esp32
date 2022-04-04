@@ -5,6 +5,7 @@
 #include <Adafruit_PWMServoDriver.h>
 #include <FastLED.h>
 #include <PS2X_lib.h>
+#include "eye.h"
 
 #define PS2_DAT        19  //MISO  19
 #define PS2_CMD        23  //MOSI  23
@@ -44,8 +45,10 @@ int moveStep = 0;
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 #define NUM_LEDS 7
-CRGB leftEye[NUM_LEDS];
-CRGB rightEye[NUM_LEDS];
+CRGB leftEyeLeds[NUM_LEDS];
+CRGB rightEyeLeds[NUM_LEDS];
+Eye leftEye(leftEyeLeds);
+Eye rightEye(rightEyeLeds);
 
 int carSpeeds[][5] = {
   {0, 0,0,0,0},
@@ -61,15 +64,15 @@ int carSpeeds[][5] = {
   {10, 1,1,1,1}
 };
 
-bool EYE_ALL[NUM_LEDS] = {true, true, true, true, true, true, true};
-bool EYE_OFF[NUM_LEDS] = {false, false, false, false, false, false, false};
+//bool EYE_ALL[NUM_LEDS] = {true, true, true, true, true, true, true};
+//bool EYE_OFF[NUM_LEDS] = {false, false, false, false, false, false, false};
 
 #define TRIG_PIN 26
 #define ECHO_PIN 25
 
 bool blinkersOn = true;
 bool collision = false;
-
+bool nearCollision = false;
 void setup()  
 { 
   Serial.begin(115200);
@@ -77,14 +80,14 @@ void setup()
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
-  FastLED.addLeds<WS2812, 27,GRB>(leftEye, NUM_LEDS);
-  FastLED.addLeds<WS2812, 14,GRB>(rightEye, NUM_LEDS);
+  FastLED.addLeds<WS2812, 27,GRB>(leftEyeLeds, NUM_LEDS);
+  FastLED.addLeds<WS2812, 14,GRB>(rightEyeLeds, NUM_LEDS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, 50);
   FastLED.clear();
   FastLED.show();
 
-  setEye(leftEye, EYE_ALL, CRGB(255,255,0));
-  setEye(rightEye, EYE_ALL, CRGB(255,255,0));
+  leftEye.setAnimation(EYE_ON, CRGB(255,255,0), CRGB(255,255,255));
+  rightEye.setAnimation(EYE_ON, CRGB(255,255,0), CRGB(255,255,255));
   
   while (controllerError != 0) {
     delay(3000);// 1 second wait
@@ -127,6 +130,8 @@ int olddy = dy;
 
 void loop()  
 {  
+    leftEye.updateAnimation();
+    rightEye.updateAnimation();
    if(remoteControlTime.update()) {
      ps2x.read_gamepad(false, 0);
      olddy = dy;
@@ -169,51 +174,61 @@ void loop()
       Serial.println(dx);
      }
    }
-  if(blinkersTime.update()) {
-    blinkersOn = !blinkersOn;
-    if(dx>0) {
-      if(blinkersOn) {
-        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
-        setEye(rightEye, EYE_ALL, CRGB(255,215,0));
-      }else {
-        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
-        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
-      }
-    }else if(dx<0) {
-      if(blinkersOn) {
-        setEye(leftEye, EYE_ALL, CRGB(255,215,0));
-        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
-      }else {
-        setEye(leftEye, EYE_OFF, CRGB(0,0,0));
-        setEye(rightEye, EYE_OFF, CRGB(0,0,0));
-      }
-    }else if(dy>0) {
-        setEye(leftEye, EYE_ALL, CRGB(255,255,255));
-        setEye(rightEye, EYE_ALL, CRGB(255,255,255));
-    }else if(dy<0 || collision) {
-        setEye(leftEye, EYE_ALL, CRGB(255,0,0));
-        setEye(rightEye, EYE_ALL, CRGB(255,0,0));
-    }else {
-        setEye(leftEye, EYE_ALL, CRGB(0,255,0));
-        setEye(rightEye, EYE_ALL, CRGB(0,255,0));
+   if(ps2x.Button(PSB_L1)) {
+      leftEye.setAnimation(EYE_UPPER_RIGHT, CRGB(255,0,0), CRGB(255,0,0));
+      rightEye.setAnimation(EYE_UPPER_LEFT, CRGB(255,0,0), CRGB(255,0,0));
+   }else if(ps2x.Button(PSB_R1)) {
+      leftEye.setAnimation(EYE_UPPER_LEFT, CRGB(0,0,255), CRGB(0,0,255));
+      rightEye.setAnimation(EYE_UPPER_RIGHT, CRGB(0,0,255), CRGB(0,0,255));
+   }else {
+    if(dx>0 && !collision) {
+      rightEye.setAnimation(EYE_BLINK, CRGB(255,215,0), CRGB(255,255,255));
+    }else if(dx<0 && !collision) {
+      leftEye.setAnimation(EYE_BLINK, CRGB(255,215,0), CRGB(255,255,255));
     }
-  }
+    if(collision) {
+      leftEye.setAnimation(EYE_ON, CRGB(255,0,0), CRGB(255,0,0));
+      rightEye.setAnimation(EYE_ON, CRGB(255,0,0), CRGB(255,0,0));
+    }else if(dy>0) {
+      if(dx>=0) {
+        leftEye.setAnimation(EYE_ON, CRGB(255,255,255), CRGB(0,255,0));
+      }
+      if(dx<=0) {
+        rightEye.setAnimation(EYE_ON, CRGB(255,255,255), CRGB(0,255,0));
+      }
+    }else if(dy<0) {
+      if(dx>=0) {
+        leftEye.setAnimation(EYE_ON, CRGB(255,0,0), CRGB(255,255,255));
+      }
+      if(dx<=0) {
+        rightEye.setAnimation(EYE_ON, CRGB(255,0,0), CRGB(255,255,255));
+      }
+    }else {
+      if(dx>=0) {
+        leftEye.setAnimation(EYE_ON, CRGB(0,255,0), CRGB(0,255,0));
+      }
+      if(dx<=0) {
+        rightEye.setAnimation(EYE_ON, CRGB(0,255,0), CRGB(0,255,0));
+      }
+    }
+   }
+  
   if(remoteCommandTime.update()) {
     int rightSpeed = abs(dy);
     int leftSpeed = rightSpeed;
     if(rightSpeed>0) {
       if(dx>0) {
         rightSpeed = rightSpeed-rightSpeed*abs(dx)/100;
-        Serial.print("Forward and steering right: ");
-        Serial.print(leftSpeed);
-        Serial.print(", ");
-        Serial.println(rightSpeed);
+        //Serial.print("Forward and steering right: ");
+        //Serial.print(leftSpeed);
+        //Serial.print(", ");
+        //Serial.println(rightSpeed);
       }else if(dx<0) {
         leftSpeed = leftSpeed-leftSpeed*abs(dx)/100;
-        Serial.print("Forward and steering left: ");
-        Serial.print(leftSpeed);
-        Serial.print(", ");
-        Serial.println(rightSpeed);
+        //Serial.print("Forward and steering left: ");
+        //Serial.print(leftSpeed);
+        //Serial.print(", ");
+        //Serial.println(rightSpeed);
       }
       
       if(dy>0) {        
@@ -226,11 +241,11 @@ void loop()
     }else if(dx!=0) {
       int steeringSpeed = abs(dx);
       if(dx>0) {   
-        Serial.println("Stering right on place");     
+        //Serial.println("Steering right on place");     
         setRightSpeed(-steeringSpeed);
         setLeftSpeed(steeringSpeed);
       }else {
-        Serial.println("Stering left on place");     
+        //Serial.println("Steering left on place");     
         setRightSpeed(steeringSpeed);
         setLeftSpeed(-steeringSpeed);
       }
@@ -238,15 +253,29 @@ void loop()
       setRightSpeed(0);
       setLeftSpeed(0);
     }
-    handleCollisions();
   }
 
    if (dx == 0 && dy == 0) {
       setRightSpeed(0);
       setLeftSpeed(0);
    }
+   if(collisionCheckTime.update()) {
+     checkCollision();
+   }
    if(carMoveTime.update()) {
-      handleCollisions();
+       if(collision) {
+          if(getRightSpeed()>0) {
+            setRightSpeed(0);
+          }
+          if(getLeftSpeed()>0) {
+            setLeftSpeed(0);
+          }
+       }else if(nearCollision) {
+          if(getRightSpeed()>30 && getLeftSpeed()>30) {
+            setRightSpeed(30);
+            setLeftSpeed(30);
+          }
+       }
       updateCarSpeed();
       moveStep++;
       if(moveStep>3) {
@@ -255,7 +284,7 @@ void loop()
    }
 }
 
-void handleCollisions() {
+void checkCollision() {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(5);
   digitalWrite(TRIG_PIN, HIGH);
@@ -265,19 +294,12 @@ void handleCollisions() {
   long duration = pulseIn(ECHO_PIN, HIGH);
   long cm = (duration/2) / 29.1;
   collision = false;
+  nearCollision = false;
   if(cm < 25) {
     collision = true;
-    if(getRightSpeed()>0) {
-      setRightSpeed(0);
-    }
-    if(getLeftSpeed()>0) {
-      setLeftSpeed(0);
-    }
+    nearCollision = true;
   }else if(cm < 35) {
-    if(getRightSpeed()>30 && getLeftSpeed()>30) {
-      setRightSpeed(30);
-      setLeftSpeed(30);
-    }
+    nearCollision = true;
   }
 
 }
@@ -343,6 +365,7 @@ void setMotorVoltage(int speed, int voltage, int pinA, int pinB) {
   }  
 }
 
+/*
 int setEye(CRGB *eye, bool *shape, CRGB color) {
   for(int i=0;i<NUM_LEDS;i++) {
     if(shape[i]) {
@@ -354,7 +377,7 @@ int setEye(CRGB *eye, bool *shape, CRGB color) {
   FastLED.setBrightness(20);
   FastLED.show();
 }
-
+*/
 int getSpeedVoltage(int speed, int minSpeed, int maxSpeed) {
   int speedIndex = (abs(speed)+9)/10;
   int adjustedSpeed = minSpeed+(maxSpeed-minSpeed)*abs(carSpeeds[speedIndex][0])/100;
