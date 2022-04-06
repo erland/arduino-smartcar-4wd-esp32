@@ -12,5 +12,5 @@ void PerfLog::begin() {
 void PerfLog::end(const char *message) {
   Serial.print(message);
   Serial.print(": ");
-  Serial.println(micros()-start);
+  Serial.println(micros() - start);
 }

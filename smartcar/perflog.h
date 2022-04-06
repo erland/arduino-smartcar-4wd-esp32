@@ -1,3 +1,5 @@
+#ifndef PERFLOG_H
+#define PERFLOG_H
 
 class PerfLog {
   private:
@@ -7,3 +9,5 @@ class PerfLog {
     void begin();
     void end(const char *message);
 };
+
+#endif

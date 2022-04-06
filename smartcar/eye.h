@@ -1,3 +1,6 @@
+#ifndef EYE_H
+#define EYE_H
+
 #include <FastLED.h>
 #include <NoDelay.h>
 
@@ -5,13 +8,13 @@
 
 typedef struct EyeAnimationEntry_struct {
   int delay;
-  bool enabled[EYE_NUM_OF_LEDS];  
-}EyeAnimationEntry;
+  bool enabled[EYE_NUM_OF_LEDS];
+} EyeAnimationEntry;
 
 typedef struct EyeAnimation_struct {
-    int length;
-    EyeAnimationEntry entries[10];
-}EyeAnimation;
+  int length;
+  EyeAnimationEntry entries[10];
+} EyeAnimation;
 
 extern EyeAnimation EYE_ON;
 extern EyeAnimation EYE_OFF;
@@ -38,16 +41,16 @@ class Eye {
 };
 
 /*
-EyeAnimation EYE_OFF(
+  EyeAnimation EYE_OFF(
   {
     EyeAnimationEntry(
       {false, false, false, false, false, false, false},
       1)
   },
   1
-};
+  };
 
-EyeAnimation EYE_BLINK(
+  EyeAnimation EYE_BLINK(
   {
     EyeAnimationEntry(
       {true, true, true, true, true, true, true},
@@ -66,5 +69,6 @@ EyeAnimation EYE_BLINK(
       100)
   },
   5
-};
+  };
 */
+#endif
