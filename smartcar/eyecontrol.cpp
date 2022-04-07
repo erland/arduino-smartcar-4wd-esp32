@@ -1,13 +1,18 @@
 #include "eyecontrol.h"
 
-EyeControl::EyeControl(RemoteControl *remoteControl, CollisionManager *collisionManager, Eye *leftEye, Eye *rightEye) {
+EyeControl::EyeControl(RemoteControl *remoteControl, CollisionManager *collisionManager, Eye *leftEye, Eye *rightEye, int refreshInterval) {
   this->remoteControl = remoteControl;
   this->collisionManager = collisionManager;
   this->leftEye = leftEye;
   this->rightEye = rightEye;
+  this->animationTime = noDelay(refreshInterval);
 }
 
 void EyeControl::refresh() {
+  if(animationTime.update()) {
+    leftEye->refresh(true);
+    rightEye->refresh(true);
+  }
   if (remoteControl->ps2x.Button(PSB_L1)) {
     leftEye->setAnimation(EYE_UPPER_RIGHT, CRGB(255, 0, 0), CRGB(255, 0, 0));
     rightEye->setAnimation(EYE_UPPER_LEFT, CRGB(255, 0, 0), CRGB(255, 0, 0));
@@ -46,5 +51,4 @@ void EyeControl::refresh() {
       }
     }
   }
-
 }

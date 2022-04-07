@@ -36,7 +36,7 @@ class Eye {
     noDelay animationTime;
     Eye(CRGB* leds);
     void setAnimation(EyeAnimation& animation, CRGB color, CRGB pupilColor);
-    void updateAnimation();
+    void refresh(bool force = false);
     void forceUpdate();
 };
 

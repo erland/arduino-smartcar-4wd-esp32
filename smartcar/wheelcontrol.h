@@ -15,18 +15,14 @@ class WheelControl {
     MotorChannel *leftBack;
     MotorChannel *rightFront;
     MotorChannel *rightBack;
-    noDelay remoteCommandTime;
-    noDelay carMoveTime;
-    int moveStep;
+    noDelay refreshTime;
 
-    void refreshMotors();
-    void refreshMotorVoltage();
     void setRightSpeed(int speed);
     void setLeftSpeed(int speed);
     void setMotorVoltage(int speed, int voltage, int pinA, int pinB);
     int getVoltageForSpeed(int speed, int minVoltage, int maxVoltage);
   public:
-    WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack);
+    WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval);
     void init();
     void refresh();
     int getLeftSpeed();

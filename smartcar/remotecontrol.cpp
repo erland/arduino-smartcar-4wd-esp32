@@ -3,12 +3,12 @@
 #define pressures   false
 #define rumble      false
 
-RemoteControl::RemoteControl(int datPin, int cmdPin, int selPin, int clkPin) {
+RemoteControl::RemoteControl(int datPin, int cmdPin, int selPin, int clkPin, int refreshInterval) {
   this->datPin = datPin;
   this->cmdPin = cmdPin;
   this->selPin = selPin;
   this->clkPin = clkPin;
-  this->refreshTime = noDelay(30);
+  this->refreshTime = noDelay(refreshInterval);
   this->dx = 0;
   this->dy = 0;
   this->olddx = dx;

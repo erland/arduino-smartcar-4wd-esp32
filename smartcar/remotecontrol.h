@@ -14,7 +14,7 @@ class RemoteControl {
     int clkPin;
     noDelay refreshTime;
   public:
-    RemoteControl(int datPin, int cmdPin, int selPin, int clkPin);
+    RemoteControl(int datPin, int cmdPin, int selPin, int clkPin, int refreshInterval);
     void init();
     void refresh();
     bool isRight();

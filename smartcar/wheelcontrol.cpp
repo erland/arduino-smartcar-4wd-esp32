@@ -1,6 +1,6 @@
 #include "wheelcontrol.h"
 
-WheelControl::WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack) {
+WheelControl::WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval) {
   this->remoteControl = remoteControl;
   this->collisionManager = collisionManager;
   this->leftFront = leftFront;
@@ -9,8 +9,7 @@ WheelControl::WheelControl(RemoteControl *remoteControl, CollisionManager *colli
   this->rightBack = rightBack;
   this->leftSpeed = 0;
   this->rightSpeed = 0;
-  this->remoteCommandTime = noDelay(30);
-  this->carMoveTime = noDelay(20);
+  this->refreshTime = noDelay(refreshInterval);
 }
 
 void WheelControl::init() {
@@ -18,7 +17,7 @@ void WheelControl::init() {
 }
 
 void WheelControl::refresh() {
-  if (remoteCommandTime.update()) {
+  if (refreshTime.update()) {
     int rightSpeed = abs(remoteControl->dy);
     int leftSpeed = rightSpeed;
     if (!remoteControl->isStopped()) {
@@ -58,18 +57,10 @@ void WheelControl::refresh() {
       setRightSpeed(0);
       setLeftSpeed(0);
     }
-  }
-
-  if (remoteControl->isStraight() && remoteControl->isStopped()) {
-    setRightSpeed(0);
-    setLeftSpeed(0);
-  }
-  refreshMotors();
-
-}
-
-void WheelControl::refreshMotors() {
-  if (carMoveTime.update()) {
+    if (remoteControl->isStraight() && remoteControl->isStopped()) {
+      setRightSpeed(0);
+      setLeftSpeed(0);
+    }
     if (collisionManager->isCollision()) {
       if (getRightSpeed() > 0) {
         setRightSpeed(0);
@@ -89,6 +80,7 @@ void WheelControl::refreshMotors() {
     rightBack->refresh();
   }
 }
+
 
 void WheelControl::setLeftSpeed(int speed) {
   leftSpeed = speed;

@@ -1,10 +1,12 @@
 #include <Arduino.h>
 #include "collisionmanager.h"
 
-CollisionManager::CollisionManager(int trigPin, int echoPin) {
+CollisionManager::CollisionManager(int trigPin, int echoPin, int collisionDistance, int nearCollisionDistance, int refreshInterval) {
+  this->collisionDistance = collisionDistance;
+  this->nearCollisionDistance = nearCollisionDistance;
   this->collision = false;
   this->nearCollision = false;
-  this->collisionRefreshInterval = noDelay(100);
+  this->collisionRefreshInterval = noDelay(refreshInterval);
   this->trigPin = trigPin;
   this->echoPin = echoPin;
 }
@@ -26,10 +28,10 @@ void CollisionManager::refresh() {
     long cm = (duration / 2) / 29.1;
     collision = false;
     nearCollision = false;
-    if (cm < 25) {
+    if (cm < collisionDistance) {
       collision = true;
       nearCollision = true;
-    } else if (cm < 35) {
+    } else if (cm < nearCollisionDistance) {
       nearCollision = true;
     }
   }

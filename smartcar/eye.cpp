@@ -64,8 +64,8 @@ void Eye::setAnimation(EyeAnimation& animation, CRGB color, CRGB pupilColor) {
   }
 }
 
-void Eye::updateAnimation() {
-  if (this->animationTime.update() && this->animation != NULL) {
+void Eye::refresh(bool force) {
+  if ((force || this->animationTime.update()) && this->animation != NULL) {
     this->animationCount++;
     if (this->animationCount > this->animation->entries[this->animationIndex].delay) {
       this->animationCount = 0;
