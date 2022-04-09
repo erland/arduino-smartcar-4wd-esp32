@@ -4,6 +4,7 @@
 #include "eye.h"
 #include "remotecontrol.h"
 #include "collisionmanager.h"
+#include "movecontroller.h"
 
 class EyeControl {
   private:
@@ -11,9 +12,10 @@ class EyeControl {
     Eye *rightEye;
     noDelay animationTime;
     RemoteControl *remoteControl;
+    MoveController *moveController;
     CollisionManager *collisionManager;
   public:
-    EyeControl(RemoteControl *remoteControl, CollisionManager *collisionManager, Eye *leftEye, Eye *rightEye, int refreshInterval);
+    EyeControl(RemoteControl *remoteControl, MoveController *moveController, CollisionManager *collisionManager, Eye *leftEye, Eye *rightEye, int refreshInterval);
     void refresh();
 };
 #endif

@@ -11,11 +11,13 @@ class CollisionManager {
     int echoPin;
     int collisionDistance;
     int nearCollisionDistance;
+    int distanceToCollision;
     noDelay collisionRefreshInterval;
   public:
     CollisionManager(int trigPin, int echoPin, int collisionDistance, int nearCollisionDistance, int refreshInterval);
     void init();
     void refresh();
+    int getDistanceToCollision();
     bool isCollision();
     bool isNearCollision();
 };

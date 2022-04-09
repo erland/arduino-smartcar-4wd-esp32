@@ -9,22 +9,27 @@
 #include "collisionmanager.h"
 #include "wheelcontrol.h"
 #include "eyecontrol.h"
+#include "selfcontrol.h"
+#include "movecontroller.h"
+#include "smartcontrol.h"
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 RemoteControl remoteControl(19, 23, 5, 18, 30);
 CollisionManager collisionManager(26, 25, 30, 40, 100);
+SelfControl selfControl(&collisionManager, 30);
+SmartControl smartControl(&remoteControl, &selfControl);
 MotorChannel leftFront(&pwm, 1, 0, 50, 150);
 MotorChannel leftBack(&pwm, 3, 2, 60, 160);
 MotorChannel rightFront(&pwm, 5, 4, 40, 150);
 MotorChannel rightBack(&pwm, 7, 6, 50, 150);
-WheelControl wheelControl(&remoteControl, &collisionManager, &leftFront, &leftBack, &rightFront, &rightBack, 20);
+WheelControl wheelControl(&smartControl, &collisionManager, &leftFront, &leftBack, &rightFront, &rightBack, 20);
 
 #define NUM_LEDS 7
 CRGB leftEyeLeds[NUM_LEDS];
 CRGB rightEyeLeds[NUM_LEDS];
 Eye leftEye(leftEyeLeds);
 Eye rightEye(rightEyeLeds);
-EyeControl eyeControl(&remoteControl, &collisionManager, &leftEye, &rightEye, 20);
+EyeControl eyeControl(&remoteControl, &smartControl, &collisionManager, &leftEye, &rightEye, 20);
 
 void setup()
 {
@@ -52,8 +57,9 @@ void setup()
 
 void loop()
 {
-  remoteControl.refresh();
   collisionManager.refresh();
+  remoteControl.refresh();
+  smartControl.refresh();
   eyeControl.refresh();
   wheelControl.refresh();
 

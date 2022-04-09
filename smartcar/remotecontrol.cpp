@@ -91,21 +91,10 @@ void RemoteControl::refresh() {
   }
 }
 
-bool RemoteControl::isForward() {
-  return dy > 0;
+int RemoteControl::getSpeed() {
+  return dy;
 }
-bool RemoteControl::isReverse() {
-  return dy < 0;
-}
-bool RemoteControl::isLeft() {
-  return dx < 0;
-}
-bool RemoteControl::isRight() {
-  return dx > 0;
-}
-bool RemoteControl::isStopped() {
-  return dy == 0;
-}
-bool RemoteControl::isStraight() {
-  return dx == 0;
+
+int RemoteControl::getSteering() {
+  return dx;
 }

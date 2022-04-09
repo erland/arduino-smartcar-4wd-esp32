@@ -9,6 +9,7 @@ CollisionManager::CollisionManager(int trigPin, int echoPin, int collisionDistan
   this->collisionRefreshInterval = noDelay(refreshInterval);
   this->trigPin = trigPin;
   this->echoPin = echoPin;
+  this->distanceToCollision = 100; //Arbritary number, will be initialized after first refresh
 }
 
 void CollisionManager::init() {
@@ -26,6 +27,7 @@ void CollisionManager::refresh() {
 
     long duration = pulseIn(echoPin, HIGH);
     long cm = (duration / 2) / 29.1;
+    distanceToCollision = cm;
     collision = false;
     nearCollision = false;
     if (cm < collisionDistance) {
@@ -43,4 +45,7 @@ bool CollisionManager::isCollision() {
 
 bool CollisionManager::isNearCollision() {
   return nearCollision;
+}
+int CollisionManager::getDistanceToCollision() {
+  return distanceToCollision;
 }

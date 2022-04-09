@@ -1,7 +1,7 @@
 #include "wheelcontrol.h"
 
-WheelControl::WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval) {
-  this->remoteControl = remoteControl;
+WheelControl::WheelControl(MoveController *moveController, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval) {
+  this->moveController = moveController;
   this->collisionManager = collisionManager;
   this->leftFront = leftFront;
   this->leftBack = leftBack;
@@ -18,33 +18,33 @@ void WheelControl::init() {
 
 void WheelControl::refresh() {
   if (refreshTime.update()) {
-    int rightSpeed = abs(remoteControl->dy);
+    int rightSpeed = abs(moveController->getSpeed());
     int leftSpeed = rightSpeed;
-    if (!remoteControl->isStopped()) {
-      if (remoteControl->isRight()) {
-        rightSpeed = rightSpeed - rightSpeed * abs(remoteControl->dx) / 100;
+    if (!moveController->isStopped()) {
+      if (moveController->isRight()) {
+        rightSpeed = rightSpeed - rightSpeed * abs(moveController->getSteering()) / 100;
         //Serial.print("Forward and steering right: ");
         //Serial.print(leftSpeed);
         //Serial.print(", ");
         //Serial.println(rightSpeed);
-      } else if (remoteControl->isLeft()) {
-        leftSpeed = leftSpeed - leftSpeed * abs(remoteControl->dx) / 100;
+      } else if (moveController->isLeft()) {
+        leftSpeed = leftSpeed - leftSpeed * abs(moveController->getSteering()) / 100;
         //Serial.print("Forward and steering left: ");
         //Serial.print(leftSpeed);
         //Serial.print(", ");
         //Serial.println(rightSpeed);
       }
 
-      if (remoteControl->isForward()) {
+      if (moveController->isForward()) {
         setRightSpeed(rightSpeed);
         setLeftSpeed(leftSpeed);
       } else {
         setRightSpeed(-rightSpeed);
         setLeftSpeed(-leftSpeed);
       }
-    } else if (remoteControl->isLeft() || remoteControl->isRight()) {
-      int steeringSpeed = abs(remoteControl->dx);
-      if (remoteControl->isRight()) {
+    } else if (moveController->isLeft() || moveController->isRight()) {
+      int steeringSpeed = abs(moveController->getSteering());
+      if (moveController->isRight()) {
         //Serial.println("Steering right on place");
         setRightSpeed(-steeringSpeed);
         setLeftSpeed(steeringSpeed);
@@ -57,7 +57,7 @@ void WheelControl::refresh() {
       setRightSpeed(0);
       setLeftSpeed(0);
     }
-    if (remoteControl->isStraight() && remoteControl->isStopped()) {
+    if (moveController->isStraight() && moveController->isStopped()) {
       setRightSpeed(0);
       setLeftSpeed(0);
     }

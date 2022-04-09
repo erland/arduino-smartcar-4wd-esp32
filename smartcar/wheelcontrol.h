@@ -2,12 +2,12 @@
 #define WHEELCONTROL_H
 
 #include "collisionmanager.h"
-#include "remotecontrol.h"
+#include "movecontroller.h"
 #include "motorchannel.h"
 
 class WheelControl {
   private:
-    RemoteControl *remoteControl;
+    MoveController *moveController;
     CollisionManager *collisionManager;
     int leftSpeed;
     int rightSpeed;
@@ -22,7 +22,7 @@ class WheelControl {
     void setMotorVoltage(int speed, int voltage, int pinA, int pinB);
     int getVoltageForSpeed(int speed, int minVoltage, int maxVoltage);
   public:
-    WheelControl(RemoteControl *remoteControl, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval);
+    WheelControl(MoveController *moveController, CollisionManager *collisionManager, MotorChannel *leftFront, MotorChannel *leftBack, MotorChannel *rightFront, MotorChannel *rightBack, int refreshInterval);
     void init();
     void refresh();
     int getLeftSpeed();

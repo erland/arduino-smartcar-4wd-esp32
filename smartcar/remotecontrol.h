@@ -3,8 +3,9 @@
 
 #include <PS2X_lib.h>
 #include <NoDelay.h>
+#include "movecontroller.h"
 
-class RemoteControl {
+class RemoteControl : public MoveController {
   private:
     int olddx;
     int olddy;
@@ -17,12 +18,8 @@ class RemoteControl {
     RemoteControl(int datPin, int cmdPin, int selPin, int clkPin, int refreshInterval);
     void init();
     void refresh();
-    bool isRight();
-    bool isLeft();
-    bool isForward();
-    bool isReverse();
-    bool isStopped();
-    bool isStraight();
+    virtual int getSpeed();
+    virtual int getSteering();
     PS2X ps2x;
     int dy;
     int dx;
