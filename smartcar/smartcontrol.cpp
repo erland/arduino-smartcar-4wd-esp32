@@ -12,6 +12,7 @@ void SmartControl::refresh() {
     this->selfControl->refresh();
   }else {
     this->activeControl = this->remoteControl;
+    this->selfControl->reset();
   }
 }
 

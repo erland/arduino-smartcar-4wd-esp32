@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "collisionmanager.h"
 
-CollisionManager::CollisionManager(int trigPin, int echoPin, int collisionDistance, int nearCollisionDistance, int refreshInterval) {
+CollisionManager::CollisionManager(Adafruit_PWMServoDriver *pwm, int directionPin, int trigPin, int echoPin, int straightAngle, int collisionDistance, int nearCollisionDistance, int refreshInterval) {
   this->collisionDistance = collisionDistance;
   this->nearCollisionDistance = nearCollisionDistance;
   this->collision = false;
@@ -9,34 +9,48 @@ CollisionManager::CollisionManager(int trigPin, int echoPin, int collisionDistan
   this->collisionRefreshInterval = noDelay(refreshInterval);
   this->trigPin = trigPin;
   this->echoPin = echoPin;
+  this->pwm = pwm;
+  this->directionPin = directionPin;
+  this->straightAngle = straightAngle;
+  this->currentDirection = 0;
   this->distanceToCollision = 100; //Arbritary number, will be initialized after first refresh
 }
 
 void CollisionManager::init() {
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
+  pwm->setPWM(this->directionPin, 0, this->angleToPulse(this->straightAngle) );
+
+}
+
+int CollisionManager::checkDistance() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  return (duration / 2) / 29.1;
 }
 
 void CollisionManager::refresh() {
   if (collisionRefreshInterval.update()) {
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(5);
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
-
-    long duration = pulseIn(echoPin, HIGH);
-    long cm = (duration / 2) / 29.1;
-    distanceToCollision = cm;
+    distanceToCollision = checkDistance();
     collision = false;
     nearCollision = false;
-    if (cm < collisionDistance) {
+    if (distanceToCollision < collisionDistance) {
       collision = true;
       nearCollision = true;
-    } else if (cm < nearCollisionDistance) {
+    } else if (distanceToCollision < nearCollisionDistance) {
       nearCollision = true;
     }
   }
+}
+
+int CollisionManager::angleToPulse(int angle) {
+  int pulse = map(angle, 0, 180, 125, 575); // map angle of 0 to 180 to Servo min and Servo max
+  return pulse;
 }
 
 bool CollisionManager::isCollision() {
@@ -48,4 +62,25 @@ bool CollisionManager::isNearCollision() {
 }
 int CollisionManager::getDistanceToCollision() {
   return distanceToCollision;
+}
+
+int CollisionManager::getDistanceToCollision(int angle) {
+  int servoAngle;
+  if (this->straightAngle < 90) {
+    servoAngle = map(angle, -90, 90, 0, this->straightAngle * 2);
+  } else {
+    servoAngle = map(angle, -90, 90, (this->straightAngle - 90) * 2, 180);
+  }
+  this->pwm->setPWM(this->directionPin, 0, this->angleToPulse(servoAngle));
+  int timeUntilPosition;
+  if (angle < this->currentDirection) {
+    timeUntilPosition = (this->currentDirection - angle) * 150 / 60;
+  } else {
+    timeUntilPosition = (angle - this->currentDirection) * 150 / 60;
+  }
+  delay(timeUntilPosition);
+  int distance = checkDistance();
+  pwm->setPWM(this->directionPin, 0, this->angleToPulse(this->straightAngle) );
+  delay(timeUntilPosition);
+  return distance;
 }
