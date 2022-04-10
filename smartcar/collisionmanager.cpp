@@ -35,15 +35,17 @@ int CollisionManager::checkDistance() {
 }
 
 void CollisionManager::refresh() {
-  if (collisionRefreshInterval.update()) {
-    distanceToCollision = checkDistance();
-    collision = false;
-    nearCollision = false;
-    if (distanceToCollision < collisionDistance) {
-      collision = true;
-      nearCollision = true;
-    } else if (distanceToCollision < nearCollisionDistance) {
-      nearCollision = true;
+  if (this->isReady() && abs(this->currentDirection) < 20) {
+    if (collisionRefreshInterval.update()) {
+      distanceToCollision = checkDistance();
+      collision = false;
+      nearCollision = false;
+      if (distanceToCollision < collisionDistance) {
+        collision = true;
+        nearCollision = true;
+      } else if (distanceToCollision < nearCollisionDistance) {
+        nearCollision = true;
+      }
     }
   }
 }
@@ -64,23 +66,32 @@ int CollisionManager::getDistanceToCollision() {
   return distanceToCollision;
 }
 
-int CollisionManager::getDistanceToCollision(int angle) {
-  int servoAngle;
-  if (this->straightAngle < 90) {
-    servoAngle = map(angle, -90, 90, 0, this->straightAngle * 2);
-  } else {
-    servoAngle = map(angle, -90, 90, (this->straightAngle - 90) * 2, 180);
+void CollisionManager::setCurrentDirection(int angle) {
+  if(angle != this->currentDirection) {
+    int servoAngle;
+    if (this->straightAngle < 90) {
+      servoAngle = map(-angle, -90, 90, 0, this->straightAngle * 2);
+    } else {
+      servoAngle = map(-angle, -90, 90, (this->straightAngle - 90) * 2, 180);
+    }
+    this->pwm->setPWM(this->directionPin, 0, this->angleToPulse(servoAngle));
+    int timeUntilPosition;
+    Serial.print("Calculating time between: ");Serial.print(this->currentDirection);Serial.print(" and ");Serial.println(angle);
+    if (angle < this->currentDirection) {
+      timeUntilPosition = (this->currentDirection - angle) * 150 / 60;
+    } else {
+      timeUntilPosition = (angle - this->currentDirection) * 150 / 60;
+    }
+    this->currentDirection = angle;
+    this->moveUntilTime = millis()+timeUntilPosition;
   }
-  this->pwm->setPWM(this->directionPin, 0, this->angleToPulse(servoAngle));
-  int timeUntilPosition;
-  if (angle < this->currentDirection) {
-    timeUntilPosition = (this->currentDirection - angle) * 150 / 60;
-  } else {
-    timeUntilPosition = (angle - this->currentDirection) * 150 / 60;
-  }
-  delay(timeUntilPosition);
+}
+
+bool CollisionManager::isReady() {
+  return millis()>this->moveUntilTime;
+}
+
+int CollisionManager::getDistanceAtCurrentDirection() {
   int distance = checkDistance();
-  pwm->setPWM(this->directionPin, 0, this->angleToPulse(this->straightAngle) );
-  delay(timeUntilPosition);
   return distance;
 }

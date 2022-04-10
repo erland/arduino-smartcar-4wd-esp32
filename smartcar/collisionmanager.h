@@ -18,14 +18,17 @@ class CollisionManager {
     int straightAngle;
     Adafruit_PWMServoDriver *pwm;
     int currentDirection;
+    long moveUntilTime;
     int angleToPulse(int angle);
     int checkDistance();
   public:
     CollisionManager(Adafruit_PWMServoDriver *pwm, int directionPin, int trigPin, int echoPin, int straightAngle, int collisionDistance, int nearCollisionDistance, int refreshInterval);
     void init();
     void refresh();
+    void setCurrentDirection(int direction);
     int getDistanceToCollision();
-    int getDistanceToCollision(int angle);
+    int getDistanceAtCurrentDirection();
+    bool isReady();
     bool isCollision();
     bool isNearCollision();
 };

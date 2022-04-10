@@ -9,6 +9,12 @@ class SelfControl : public MoveController {
     CollisionManager *collisionManager;
     noDelay refreshTime;
     noDelay sideCollisionTime;
+    bool checkingLeft;
+    bool checkingRight;
+    bool checkingLeftPath;
+    bool checkingRightPath;
+    int leftDistance;
+    int rightDistance;
     int leftRotationInProgress;
     int rightRotationInProgress;
     int reverseInProgress;
