@@ -1,5 +1,21 @@
 #include "selfcontrol.h"
 
+struct ScanState {
+  int angle;
+  bool stop;
+  int adjustTime;
+};
+
+#define NUM_OF_CHECKSTATES 6
+ScanState checkStates[NUM_OF_CHECKSTATES] {
+  { -80, false, 10},
+  { -50, false, 30},
+  { -30, true, 60},
+  { 30, true, 60},
+  {50, false, 30},
+  {80, false, 10}
+};
+
 SelfControl::SelfControl(CollisionManager *collisionManager, int sideCollisionInterval, int refreshInterval) {
   this->collisionManager = collisionManager;
   this->refreshTime = noDelay(refreshInterval);
@@ -14,8 +30,7 @@ void SelfControl::reset() {
   this->rightRotationInProgress = 0;
   this->forwardInProgress = 0;
   this->reverseInProgress = 0;
-  this->checkingLeft = false;
-  this->checkingRight = false;
+  this->checkingCollisionIndex = -1;
   this->checkingLeftPath = false;
   this->checkingRightPath = false;
   this->leftDistance = 0;
@@ -70,8 +85,7 @@ void SelfControl::refresh() {
       } else if (this->rightRotationInProgress > 0) {
         // Do nothing
       } else {
-        this->checkingLeft = false;
-        this->checkingRight = false;
+        this->checkingCollisionIndex = -1;
         if (this->checkingLeftPath) {
           if (this->collisionManager->isReady()) {
             this->checkingLeftPath = false;
@@ -88,11 +102,11 @@ void SelfControl::refresh() {
             this->collisionManager->setCurrentDirection(0);
             if (this->leftDistance > this->rightDistance) {
               Serial.println("Selecting left path");
-              this->leftRotationInProgress = 80;
+              this->leftRotationInProgress = 150;
               this->dx = -60;
             } else {
               Serial.println("Selecting right path");
-              this->rightRotationInProgress = 80;
+              this->rightRotationInProgress = 150;
               this->dx = 60;
             }
           }
@@ -113,40 +127,46 @@ void SelfControl::refresh() {
       }
     }
   }
-  if ((this->checkingLeft || this->checkingRight) && this->collisionManager->isReady()) {
+  if ((this->checkingCollisionIndex >= 0) && this->collisionManager->isReady()) {
+    Serial.print("Checking index "); Serial.println(this->checkingCollisionIndex);
     int distance = this->collisionManager->getDistanceAtCurrentDirection();
-    if (this->checkingLeft) {
-      this->checkingLeft = false;
-      if (distance < 40) {
-        Serial.println("Left close, resetting");
+    if (distance < 40) {
+      if (checkStates[this->checkingCollisionIndex].angle < 0) {
         this->leftRotationInProgress = 0;
-        this->rightRotationInProgress = 25;
+        this->rightRotationInProgress = checkStates[this->checkingCollisionIndex].adjustTime;
         this->dx = 60;
-        this->collisionManager->setCurrentDirection(0);
+        if ( checkStates[this->checkingCollisionIndex].stop) {
+          this->dy = 0;
+        }
       } else {
-        Serial.println("Left not close, initiating right check");
-        this->collisionManager->setCurrentDirection(70);
-        this->checkingRight = true;
-      }
-    } else {
-      this->checkingRight = false;
-      if (distance < 40) {
-        Serial.println("Right close, resetting");
-        this->leftRotationInProgress = 25;
+        this->leftRotationInProgress = checkStates[this->checkingCollisionIndex].adjustTime;
         this->rightRotationInProgress = 0;
         this->dx = -60;
-      } else {
-        Serial.println("Right not close, resetting");
+        if ( checkStates[this->checkingCollisionIndex].stop) {
+          this->dy = 0;
+        }
       }
+      Serial.print("Close at "); Serial.print(checkStates[this->checkingCollisionIndex].angle); Serial.println(", resetting");
+      this->checkingCollisionIndex = -1;
       this->collisionManager->setCurrentDirection(0);
+    } else {
+      this->checkingCollisionIndex++;
+      if (this->checkingCollisionIndex < NUM_OF_CHECKSTATES) {
+        Serial.print("Not close at "); Serial.print(checkStates[this->checkingCollisionIndex - 1].angle); Serial.println(", moving to next");
+        this->collisionManager->setCurrentDirection(checkStates[this->checkingCollisionIndex].angle);
+      } else {
+        Serial.print("Not close at "); Serial.print(checkStates[this->checkingCollisionIndex - 1].angle); Serial.println(", resetting");
+        this->checkingCollisionIndex = -1;
+        this->collisionManager->setCurrentDirection(0);
+      }
     }
   }
   if (this->collisionManager->isReady()) {
     if (!this->checkingLeftPath && !this->checkingRightPath) {
       if (sideCollisionTime.update()) {
-        Serial.println("Initiating checking left");
-        this->collisionManager->setCurrentDirection(-70);
-        this->checkingLeft = true;
+        Serial.println("Initiating checking");
+        this->checkingCollisionIndex = 0;
+        this->collisionManager->setCurrentDirection(checkStates[this->checkingCollisionIndex].angle);
       }
     }
   }

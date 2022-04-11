@@ -16,7 +16,7 @@
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 RemoteControl remoteControl(19, 23, 5, 18, 30);
 CollisionManager collisionManager(&pwm, 8, 26, 25, 83, 30, 40, 100);
-SelfControl selfControl(&collisionManager, 2000, 30);
+SelfControl selfControl(&collisionManager, 1000, 30);
 SmartControl smartControl(&remoteControl, &selfControl);
 MotorChannel leftFront(&pwm, 1, 0, 50, 150);
 MotorChannel leftBack(&pwm, 3, 2, 60, 160);

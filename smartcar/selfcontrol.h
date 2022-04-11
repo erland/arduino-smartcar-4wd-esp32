@@ -9,8 +9,7 @@ class SelfControl : public MoveController {
     CollisionManager *collisionManager;
     noDelay refreshTime;
     noDelay sideCollisionTime;
-    bool checkingLeft;
-    bool checkingRight;
+    int checkingCollisionIndex;
     bool checkingLeftPath;
     bool checkingRightPath;
     int leftDistance;

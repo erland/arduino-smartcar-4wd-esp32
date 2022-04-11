@@ -83,6 +83,7 @@ void CollisionManager::setCurrentDirection(int angle) {
       timeUntilPosition = (angle - this->currentDirection) * 150 / 60;
     }
     this->currentDirection = angle;
+    Serial.print("Moving to ");Serial.println(angle);
     this->moveUntilTime = millis()+timeUntilPosition;
   }
 }
